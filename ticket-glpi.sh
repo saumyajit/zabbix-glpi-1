@@ -1,11 +1,9 @@
 #! /bin/bash
-#Autor: 
-#Email:
-#Created:
+#Autor: Peterson Kologeski Basso
+#Email: peterson.basso@gmail.com
+#Created: 17/10/2017
 #Update: 
 #
-#Antes de executar a primeira vez,
-#ler o arquivo README.txt
 
 #---------- CONFIGURACOES ---------------------------------
 
