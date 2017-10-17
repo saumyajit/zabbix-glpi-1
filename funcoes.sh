@@ -1,46 +1,4 @@
 
-ARQ_BANCO="banco.db"
-TEMP=$(mktemp)
-
-#No GLPI: User > Preference
-USER_GLPI="zabbix"
-USER_GLPI_ID="6"
-USER_TOKEN="VI6D558r9XJHsAm15R0moFFDaRIEZ5NVHswwiWfZ";
-
-#No GLPI: Configure > API
-APP_TOKEN="GtwIZFW3nqvus4tmrFnvc5B13yIMoIMlInJhN4RY";
-
-#Finalizar com uma barra "/"
-#Exemplo: http://path/to/glpi/apirest.php/
-API_URL="http://10.230.50.32/glpi/apirest.php/";
-
-#Local do script
-#Finalizar com uma barra "/"
-#Exemplo: /path/to/script/
-PATH_SCRIPT=$(pwd)
-SEP="|"
-#-----------------------------------------------------------
-
-#Capturando variaveis passadas pelo Zabbix
-#option pode ser "open" ou "update"
-option=$1;
-eventID=$2;
-subject=$3;
-message=$4;
-severity=$5;
-
-
-#Abrindo uma sessao no GLPI via api-rest
-
-
-
-URL_ZABBIX='http://10.210.10.40/zabbix/api_jsonrpc.php'
-HEADER_ZABBIX='Content-Type:application/json'
-
-USER_ZABBIX='"Admin"'
-PASS_ZABBIX='"zabbixnoc"'
-
-
 apiGLPI(){
 
 openSession
