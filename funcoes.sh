@@ -1,3 +1,4 @@
+
 ARQ_BANCO="banco.db"
 TEMP=$(mktemp)
 
@@ -7,7 +8,7 @@ USER_GLPI_ID="6"
 USER_TOKEN="VI6D558r9XJHsAm15R0moFFDaRIEZ5NVHswwiWfZ";
 
 #No GLPI: Configure > API
-APP_TOKEN="WaPWe5bgiGKQEUIaqKJO2uI7rZLUyVVhAVSooLGh";
+APP_TOKEN="GtwIZFW3nqvus4tmrFnvc5B13yIMoIMlInJhN4RY";
 
 #Finalizar com uma barra "/"
 #Exemplo: http://path/to/glpi/apirest.php/
@@ -16,7 +17,8 @@ API_URL="http://10.230.50.32/glpi/apirest.php/";
 #Local do script
 #Finalizar com uma barra "/"
 #Exemplo: /path/to/script/
-PATH_SCRIPT="/usr/lib/zabbix/externalscripts/ticketglpi/";
+PATH_SCRIPT=$(pwd)
+SEP="|"
 #-----------------------------------------------------------
 
 #Capturando variaveis passadas pelo Zabbix
@@ -39,58 +41,52 @@ USER_ZABBIX='"Admin"'
 PASS_ZABBIX='"zabbixnoc"'
 
 
+apiGLPI(){
+
+openSession
+severidade $priority
+
+	case "$option" in
+		open )
+			echo "Executando abertura de chamado"
+			input='{"input":{"name": "'$title'","content": "'$description'","priority":"'$priority'","requesttypes_id":"7"}}'
+
+			respGlpi=$(curl --silent -X POST -H 'Content-Type: application/json' -H "Session-Token: $SessionToken" -H "App-Token: $APP_TOKEN" -d "$input" "${API_URL}Ticket/")
+			messageAck=$(echo "$respGlpi" | jq ."message")
+			ticketid=$(echo "$respGlpi" | jq ."id")
+			ackZabbix
+			gravaBanco
+		
+			;;
+		close )
+
+
+			;;
+		update )
+			
+			ticketid=$(buscaTicket)
+
+			input='{"input":{"tickets_id": '$ticketid',"users_id": "7","content": "'$description'"}}'
+
+			echo "curl --silent -X POST -H 'Content-Type: application/json' -H "Session-Token: $SessionToken" -H "App-Token: $APP_TOKEN" -d "$input" 'http://10.230.50.32/glpi/apirest.php/TicketFollowUp/'"
+			respGlpi=$(curl --silent -X POST -H 'Content-Type: application/json' -H "Session-Token: $SessionToken" -H "App-Token: $APP_TOKEN" -d "$input" 'http://10.230.50.32/glpi/apirest.php/TicketFollowUp/')
+			;;
+	esac
+
+
+closeSession
+
+
+}
+
 openSession(){
 
-session=$(curl -X GET -H 'Content-Type: application/json' -H "Authorization: user_token $USER_TOKEN" -H "App-Token: $APP_TOKEN" "${API_URL}initSession")
+session=$(curl --silent -X GET -H 'Content-Type: application/json' -H "Authorization: user_token $USER_TOKEN" -H "App-Token: $APP_TOKEN" "${API_URL}initSession")
 
 #Formatando o token de sessao
 f1=$(echo "$session" | jq ."session_token");
 SessionToken=$(echo "$f1" | sed 's/"//g')
 
-}
-
-#Abrindo o chamado no GLPI
-openTicket() {
-openSession;
-severidade;
-
-echo "Severidade: $severity"
-
-#ter instalado previamente o "jq"
-
-input='{"input":{"name": "'$subject'","content": "'$message'","priority":"'$severity'","requesttypes_id":"7"}}'
-
-respGlpi=$(curl -X POST -H 'Content-Type: application/json' -H "Session-Token: $SessionToken" -H "App-Token: $APP_TOKEN" -d "$input" "$API_URL"'Ticket/')
-
-closeSession;
-
-ticketID=$(echo "$respGlpi" | jq ."id");
-message=$(echo "$respGlpi" | jq ."message")
-
-echo "$ticketID|$eventID" >> "$PATH_SCRIPT$ARQ_BANCO"
-
-ackZabbix;
-
-}
-
-#Atualizando um chamado inserindo um acompanhamento
-updateTicket() {
-selTicketID=$(grep "$eventID" "$PATH_SCRIPT$ARQ_BANCO" | cut -d"|" -f 1)
-openSession;
-#ter instalado previamente o "jq"
-respGlpi=$(jq -n  \
-		--arg _message "$subject $message" \
-		--arg _selTicketID "$selTicketID" \
-		--arg _userId "$USER_GLPI_ID" \
-		'{"input": {"tickets_id": $_selTicketID,"users_id": $_userId,"content": $_message}}' |
-	curl -X POST \
-		-H "Content-Type: application/json" \
-		-H "Session-Token: $SessionToken" \
-		-H "App-Token: $APP_TOKEN" \
-		-k \
-		-d@- \
-		$API_URL'TicketFollowUp/')
-closeSession;
 }
 
 #Solucionando o chamado no GLPI
@@ -145,14 +141,14 @@ JSON='
         "jsonrpc": "2.0",
         "method": "event.acknowledge",
         "params": {
-                    "eventids":"'$eventID'",
-                    "message":'$message'
+                    "eventids":"'$eventid'",
+                    "message":'$messageAck'
         },
         "auth": "'$TOKEN'",
         "id": 1        
     }
     '
-curl -s -X POST -H "$HEADER_ZABBIX" -d "$JSON" "$URL_ZABBIX"
+curl --silent -X POST -H "$HEADER_ZABBIX" -d "$JSON" "$URL_ZABBIX"
 
 }
 
@@ -170,41 +166,56 @@ autenticacaoZabbix()
         "id": 0
     }
     '
-    curl -s -X POST -H "$HEADER_ZABBIX" -d "$JSON" "$URL_ZABBIX" | jq ."result" | sed 's/"//g'
+    curl --silent -X POST -H "$HEADER_ZABBIX" -d "$JSON" "$URL_ZABBIX" | jq ."result" | sed 's/"//g'
 }
 
 severidade(){
 
-case $severity in
+case $1 in
 	'Not classified')
-		severity=1;;
+		priority=1;;
 	'Information')
-		severity=1;;
+		priority=1;;
 	'Warning')
-		severity=2;;
+		priority=2;;
 	'Average')
-		severity=3;;
+		priority=3;;
 	'High')
-		severity=4;;
+		priority=4;;
 	'Disaster')
-		severity=6;;
+		priority=6;;
 	*)
-		severity=3;;	
+		priority=3;;	
 
 esac
 }
 
 gravaBanco(){
 
+	verificaChave "$eventid" && { echo "EventID já existente no banco"; return; } || echo "${eventid}${SEP}${ticketid}" >> "${PATH_SCRIPT}/${ARQ_BANCO}"
 
 }
 
-procuraBanco(){
+buscaTicket(){
 
+	grep -i "${eventid}${SEP}" "$ARQ_BANCO" | cut -d"|" -f 2
+	
 
 }
 
 deletaBanco(){
-
+	verificaChave "$eventid" || return
+	grep -i -v "^${eventid}${SEP}" "$ARQ_BANCO" > "$TEMP"
+	mv "$TEMP" "$ARQ_BANCO"
+	echo "Registro apagado"
 	
 }
+
+verificaChave(){
+
+grep -i -q "^$1${SEP}" "$ARQ_BANCO"
+
+}
+
+
+
