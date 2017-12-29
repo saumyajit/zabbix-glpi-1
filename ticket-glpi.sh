@@ -14,10 +14,10 @@ TEMP=$(mktemp)
 #No GLPI: User > Preference
 USER_GLPI="zabbix"
 USER_GLPI_ID="6"
-USER_TOKEN="VI6D558r9XJHsAm15R0moFFDaRIEZ5NVHswwiWfZ";
+USER_TOKEN="";
 
 #No GLPI: Configure > API
-APP_TOKEN="GtwIZFW3nqvus4tmrFnvc5B13yIMoIMlInJhN4RY";
+APP_TOKEN="";
 
 #Finalizar com uma barra "/"
 #Exemplo: http://path/to/glpi/apirest.php/
@@ -32,8 +32,8 @@ SEP="|"
 URL_ZABBIX='http://10.210.10.40/zabbix/api_jsonrpc.php'
 HEADER_ZABBIX='Content-Type:application/json'
 
-USER_ZABBIX='"Admin"'
-PASS_ZABBIX='"zabbixnoc"'
+USER_ZABBIX='""'
+PASS_ZABBIX='""'
 
 
 AJUDA="
